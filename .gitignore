@@ -28,3 +28,4 @@ run_*.ps1
 
 # Trae
 .trae/
+!.trae/rules/project_rules.md
