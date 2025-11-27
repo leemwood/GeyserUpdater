@@ -79,29 +79,34 @@ public class GeyserUpdaterCommon {
         httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream())
                 .thenAccept(response -> {
                     if (response.statusCode() == 200) {
+                        Path tempFile = null;
                         try (InputStream in = response.body()) {
+                            tempFile = Files.createTempFile("geyserupdater-", ".tmp");
+                            Files.copy(in, tempFile, StandardCopyOption.REPLACE_EXISTING);
+                            
                             Path updateFolder = platform.getUpdateFolder();
-                            
-                            // If filename is different, we might end up with duplicates if we don't delete old one.
-                            // But deleting old one might be impossible if locked.
-                            // For Paper 'update' folder, it automatically replaces file with same name or whatever is in update folder?
-                            // Actually Spigot update folder mechanism: On startup, files in 'update' are moved to 'plugins', replacing existing ones.
-                            // So we should save as 'Geyser-Spigot.jar' (or whatever the plugin file is named) inside 'update' folder.
-                            // But we don't know the exact filename of the installed plugin easily without scanning.
-                            // However, we can use the filename from Modrinth.
-                            // If Modrinth filename is 'Geyser-Spigot.jar', and installed is 'Geyser-Spigot.jar', it works.
-                            // If installed is 'geyser-spigot-custom.jar', Spigot might not replace it unless we map it.
-                            // But usually people keep standard names.
-                            
                             Path target = updateFolder.resolve(version.filename);
                             Files.createDirectories(target.getParent());
-                            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
                             
-                            platform.info(config.getMessage("success").replace("{project}", project));
+                            try {
+                                Files.move(tempFile, target, StandardCopyOption.REPLACE_EXISTING);
+                                platform.info(config.getMessage("success").replace("{project}", project));
+                            } catch (java.io.IOException e) {
+                                // Fallback for file locking
+                                platform.warn("Failed to overwrite file (possibly locked): " + e.getMessage());
+                                Path fallback = target.resolveSibling(target.getFileName().toString() + ".new");
+                                platform.info("Saving as " + fallback.getFileName() + " instead...");
+                                Files.move(tempFile, fallback, StandardCopyOption.REPLACE_EXISTING);
+                                platform.info("Update saved to " + fallback.getFileName() + ". Please manually replace it after server restart.");
+                            }
                         } catch (Exception e) {
                             platform.error(config.getMessage("error")
                                     .replace("{project}", project)
                                     .replace("{error}", e.getMessage()), e);
+                        } finally {
+                             if (tempFile != null) {
+                                 try { Files.deleteIfExists(tempFile); } catch (Exception ignored) {}
+                             }
                         }
                     } else {
                         platform.error("Failed to download: " + response.statusCode());

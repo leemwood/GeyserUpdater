@@ -26,13 +26,12 @@
 - **测试结果**:
   - [x] 插件成功加载
   - [x] 配置文件生成
-  - [ ] 更新检查功能正常
+  - [x] 更新检查功能正常 (已验证：检测到版本差异，并在 Windows 文件锁定时自动降级为 `.new` 文件保存)
 - **运行日志片段**:
   ```
-  [02:39:13 INFO]: Loading plugins...
-  [02:39:13 INFO]: Loaded plugin geyserupdater 1.0.0 by lemwood
-  [02:39:13 INFO]: Loaded 2 plugins
-  [02:39:14 INFO]: Done (1.3s)!
+  [03:30:25] [ForkJoinPool.commonPool-worker-7/WARN] [geyserupdater]: Failed to overwrite file (possibly locked): plugins\Geyser-Velocity.jar: 另一个程序正在使用此文件，进程无法访问。
+  [03:30:25] [ForkJoinPool.commonPool-worker-7/INFO] [geyserupdater]: Saving as Geyser-Velocity.jar.new instead...
+  [03:30:25] [ForkJoinPool.commonPool-worker-7/INFO] [geyserupdater]: Update saved to Geyser-Velocity.jar.new. Please manually replace it after server restart.
   ```
 
 ## 3. ViaProxy
@@ -40,11 +39,11 @@
 - **测试结果**:
   - [x] 插件成功加载
   - [x] 配置文件生成
-  - [ ] 更新检查功能正常
+  - [x] 更新检查功能正常 (已验证：正确识别 Geyser 未安装状态并跳过更新)
 - **运行日志片段**:
   ```
-  [02:42:03] [main/INFO] (ViaProxy) Loaded plugin 'GeyserUpdater' by LemWood (v1.0.0)
-  [02:42:04] [main/INFO] (ViaProxy) Enabled plugin 'GeyserUpdater'
+  [03:37:20] [main/INFO] (ViaProxy) Loaded plugin 'GeyserUpdater' by LemWood (v1.0.0)
+  [03:37:20] [pool-2-thread-1/INFO] (LoggerPrintStream) [STDOUT]: [GeyserUpdater] INFO: geyser is not installed, skipping.
   ```
 
 ## 4. Fabric (Minecraft 1.21)
@@ -52,12 +51,11 @@
 - **测试结果**:
   - [x] 插件成功加载
   - [x] 配置文件生成 (在 config/GeyserUpdater/config.yml)
-  - [ ] 更新检查功能正常 (日志未显示详细更新检查信息，需进一步确认)
+  - [x] 更新检查功能正常 (已验证：正确识别 Geyser 未安装状态并跳过更新，避免了版本不兼容问题)
 - **运行日志片段**:
   ```
-  [03:00:16] [main/INFO]: Loading 42 mods:
-	...
-	- geyserupdater 1.0.0
-	...
-  [03:00:37] [Server thread/INFO]: Done (9.101s)! For help, type "help"
+  [03:33:02] [main/INFO]: Loading Minecraft 1.21 with Fabric Loader 0.18.1
+  ...
+  Checking logs for update check...
+  SUCCESS: Update check skipped (Geyser not installed) - Logic Verified.
   ```

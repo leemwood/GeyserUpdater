@@ -41,21 +41,26 @@ public class GeyserUpdaterViaProxy extends ViaProxyPlugin implements PlatformAda
     @Override
     public void info(String message) {
         logger.info(message);
+        System.out.println("[GeyserUpdater] INFO: " + message);
     }
 
     @Override
     public void warn(String message) {
         logger.warning(message);
+        System.out.println("[GeyserUpdater] WARN: " + message);
     }
 
     @Override
     public void error(String message) {
         logger.severe(message);
+        System.err.println("[GeyserUpdater] ERROR: " + message);
     }
 
     @Override
     public void error(String message, Throwable t) {
         logger.log(java.util.logging.Level.SEVERE, message, t);
+        System.err.println("[GeyserUpdater] ERROR: " + message);
+        t.printStackTrace();
     }
 
     @Override
@@ -91,6 +96,10 @@ public class GeyserUpdaterViaProxy extends ViaProxyPlugin implements PlatformAda
             ViaProxyPlugin plugin = ViaProxy.getPluginManager().getPlugin(pluginName);
             if (plugin != null) {
                 return plugin.getVersion();
+            } else {
+                // Try lowercase name just in case
+                plugin = ViaProxy.getPluginManager().getPlugin(pluginName.toLowerCase());
+                if (plugin != null) return plugin.getVersion();
             }
         } catch (Exception e) {
             // Fallback or ignore
