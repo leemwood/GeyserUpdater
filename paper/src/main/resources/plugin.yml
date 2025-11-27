@@ -1,0 +1,14 @@
+name: GeyserUpdater
+version: 1.0.0
+main: cn.lemwood.geyserupdater.paper.GeyserUpdaterPaper
+api-version: 1.21
+authors: [lemwood]
+description: A plugin to automatically update Geyser, Floodgate, and GeyserExtras using Modrinth API.
+commands:
+  geyserupdater:
+    description: Main command for GeyserUpdater
+    permission: geyserupdater.admin
+permissions:
+  geyserupdater.admin:
+    description: Allows using GeyserUpdater commands
+    default: op

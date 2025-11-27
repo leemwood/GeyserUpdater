@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "geyserupdater",
+  "version": "1.0.0",
+  "name": "GeyserUpdater",
+  "description": "A plugin to automatically update Geyser, Floodgate, and GeyserExtras using Modrinth API.",
+  "authors": [
+    "lemwood"
+  ],
+  "contact": {
+    "homepage": "https://github.com/leemwood/GeyserUpdater",
+    "sources": "https://github.com/leemwood/GeyserUpdater"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "cn.lemwood.geyserupdater.fabric.GeyserUpdaterFabric"
+    ]
+  },
+  "mixins": [],
+  "depends": {
+    "fabricloader": ">=0.15.11",
+    "minecraft": "~1.21",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

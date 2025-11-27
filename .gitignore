@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+build/
+out/
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Java
+*.class
+*.log
+*.ctxt
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+
+# Test environment
+test/
+dist/
+*.hprof
+
+# Test scripts
+test_*.ps1
+run_*.ps1
+*.py
+
+# Trae
+.trae/

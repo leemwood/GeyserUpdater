@@ -1,0 +1,4 @@
+name: "GeyserUpdater"
+version: "1.0.0"
+author: "LemWood"
+main: "cn.lemwood.geyserupdater.viaproxy.GeyserUpdaterViaProxy"

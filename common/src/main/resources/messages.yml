@@ -1,0 +1,11 @@
+# GeyserUpdater 消息配置
+# 支持使用 '&' 的旧版颜色代码
+
+prefix: "&8[&bGeyserUpdater&8] &r"
+update-found: "&a发现 {project} 的新版本: {version}"
+downloading: "&e正在下载 {project}..."
+success: "&a{project} 下载成功。请重启服务器以应用更改。"
+error: "&c更新 {project} 时出错: {error}"
+no-update: "&a{project} 已是最新版本。"
+check-start: "&e正在检查更新..."
+no-permission: "&c你没有权限使用此命令。"

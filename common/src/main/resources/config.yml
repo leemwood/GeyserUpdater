@@ -1,0 +1,14 @@
+# GeyserUpdater 配置文件
+
+# 启用调试模式以获取更详细的日志
+debug: false
+
+# 更新策略：
+# AUTO - 自动下载并安装更新
+# MANUAL - 仅在运行 /geyserupdater update 时下载更新 (尚未完全实现，目前行为类似于 CHECK_ONLY)
+# CHECK_ONLY - 仅检查更新并通知管理员
+update-strategy: AUTO
+
+# 允许的版本类型
+allow-alpha: true
+allow-beta: true
