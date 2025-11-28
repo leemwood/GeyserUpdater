@@ -182,7 +182,9 @@ public class GeyserUpdaterCommon {
         int delay = config.getRestartDelay();
         platform.info(config.getMessage("restart-countdown").replace("{seconds}", String.valueOf(delay)));
         
-        platform.runAsync(() -> {
+        // Use a dedicated thread instead of platform scheduler to ensure it survives shutdown init
+        // and doesn't get blocked by platform shutdown logic.
+        Thread restartThread = new Thread(() -> {
             try {
                 Thread.sleep(delay * 1000L);
                 platform.info(config.getMessage("restarting"));
@@ -212,7 +214,10 @@ public class GeyserUpdaterCommon {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-        });
+        }, "GeyserUpdater-Restart-Thread");
+        
+        restartThread.setDaemon(false); // Ensure thread keeps running until it finishes (shuts down server)
+        restartThread.start();
     }
 
     private void createRestartScript() {
