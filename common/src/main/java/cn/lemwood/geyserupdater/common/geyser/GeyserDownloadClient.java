@@ -78,6 +78,11 @@ public class GeyserDownloadClient implements UpdateClient {
                             // Actually we can just append to the base URL structure.
                             version.downloadUrl = String.format("%s/projects/%s/versions/latest/builds/latest/downloads/%s", 
                                     BASE_URL, geyserProject, platformKey);
+                            
+                            if (downloadInfo.has("sha256")) {
+                                version.sha256 = downloadInfo.get("sha256").getAsString();
+                            }
+                            
                             return version;
                         } else {
                             platform.warn("Geyser platform '" + platformKey + "' not found in downloads for " + projectId);

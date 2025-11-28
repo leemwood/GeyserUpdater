@@ -80,6 +80,14 @@ public class ModrinthClient implements UpdateClient {
                                     }
                                     version.downloadUrl = fileObj.get("url").getAsString();
                                     version.filename = fileObj.get("filename").getAsString();
+                                    
+                                    if (fileObj.has("hashes")) {
+                                        JsonObject hashes = fileObj.getAsJsonObject("hashes");
+                                        if (hashes.has("sha256")) {
+                                            version.sha256 = hashes.get("sha256").getAsString();
+                                        }
+                                    }
+                                    
                                     return version;
                                 }
                             }

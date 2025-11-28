@@ -9,5 +9,6 @@ public interface UpdateClient {
         public String versionNumber;
         public String downloadUrl;
         public String filename;
+        public String sha256;
     }
 }

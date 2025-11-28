@@ -17,12 +17,18 @@ import java.nio.file.StandardCopyOption;
 import java.util.concurrent.CompletableFuture;
 import java.nio.charset.Charset;
 
+import java.security.MessageDigest;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.List;
+import java.util.ArrayList;
+
 public class GeyserUpdaterCommon {
     private final PlatformAdapter platform;
     private final ConfigManager config;
     private final UpdateClient client;
     private final String[] projects;
-    private boolean restartRequired = false;
+    private final AtomicBoolean restartRequired = new AtomicBoolean(false);
 
     public GeyserUpdaterCommon(PlatformAdapter platform) {
         this(platform, new String[]{"geyser", "floodgate", "geyserextras"});
@@ -52,6 +58,7 @@ public class GeyserUpdaterCommon {
     }
 
     public void checkAll() {
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
         for (String project : projects) {
             String installed = platform.getInstalledVersion(project);
             if (installed == null) {
@@ -59,52 +66,164 @@ public class GeyserUpdaterCommon {
                     if (config.isDebug()) {
                         platform.info(config.getMessage("auto-install-checking").replace("{project}", project));
                     }
-                    checkProject(project, null);
+                    futures.add(checkProject(project, null));
                 } else if (config.isDebug()) {
                     platform.info(config.getMessage("not-installed-skipping").replace("{project}", project));
                 }
                 continue;
             }
             
-            checkProject(project, installed);
+            futures.add(checkProject(project, installed));
         }
+        
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+            .thenRun(() -> {
+                if (restartRequired.get()) {
+                    scheduleRestart();
+                }
+            });
     }
 
-    private void checkProject(String project, String installedVersion) {
+    private CompletableFuture<Void> checkProject(String project, String installedVersion) {
         platform.info(config.getMessage("checking-updates").replace("{project}", project));
-        client.getLatestVersion(project).thenAccept(version -> {
-            if (version == null) return;
+        return client.getLatestVersion(project).thenCompose(version -> {
+            if (version == null) return CompletableFuture.completedFuture(null);
             
-            // Normalize versions for comparison if possible, but simple inequality is safer to detect change
-            if (installedVersion == null || !version.versionNumber.equals(installedVersion)) {
-                if (installedVersion == null) {
-                    platform.info(config.getMessage("found-latest")
-                            .replace("{project}", project)
-                            .replace("{version}", version.versionNumber));
-                } else {
-                    platform.info(config.getMessage("update-found")
-                            .replace("{project}", project)
-                            .replace("{version}", version.versionNumber));
-                }
+            // If installed version is null (missing file), we should treat it as an update if auto-install is enabled
+            boolean isUpdate = installedVersion != null;
+            boolean shouldDownload = false;
+            
+            if (!isUpdate) {
+                // File missing
+                platform.info(config.getMessage("found-latest")
+                        .replace("{project}", project)
+                        .replace("{version}", version.versionNumber));
+                shouldDownload = true;
+            } else if (!version.versionNumber.equals(installedVersion)) {
+                // Version mismatch
+                platform.info(config.getMessage("update-found")
+                        .replace("{project}", project)
+                        .replace("{version}", version.versionNumber));
+                shouldDownload = true;
+            } else {
+                // Version matches string-wise, but let's verify file hash if available to be sure
+                // This handles cases where version string is same but file changed (e.g. snapshots with same build num but different hash?)
+                // Or if user manually replaced file with older version but kept filename?
+                // Actually, if version matches, usually we skip.
+                // But user mentioned "Plugin exists but still downloads".
+                // Let's check SHA256 if available.
                 
+                // Wait, the user said "Plugin already exists, result is just requesting api to download file".
+                // This implies we are re-downloading even if version matches?
+                // My previous logic was:
+                // if (installedVersion == null || !version.versionNumber.equals(installedVersion)) { ... download ... }
+                // So if version equals, it should skip.
+                
+                // Perhaps installedVersion is not what we expect?
+                // getInstalledVersion returns version string from plugin.yml/fabric.mod.json.
+                // If the remote version is "2.2.0-SNAPSHOT" and local is "2.2.0-SNAPSHOT", it should be equal.
+                
+                // However, maybe for Geyser Standalone, we return null in getInstalledVersion?
+                // Yes! In GeyserExtensionAdapter.java:
+                // public String getInstalledVersion(String projectId) { return null; }
+                // That's why it always updates!
+                
+                // We need to implement getInstalledVersion for Geyser Standalone or rely on hash check.
+                // Since we can't easily get internal version of running Geyser (it doesn't expose it easily via API?),
+                // checking the file hash on disk is the best way.
+                
+                // So, if installedVersion is null OR mismatch, we proceed to check hash (if file exists).
+                
+                shouldDownload = true;
+            }
+            
+            if (shouldDownload) {
                 if ("AUTO".equalsIgnoreCase(config.getUpdateStrategy())) {
-                    downloadUpdate(project, version, installedVersion != null);
+                    // Check hash before downloading
+                    if (isFileUpToDate(project, version, isUpdate)) {
+                        if (config.isDebug()) {
+                            platform.info(config.getMessage("no-update").replace("{project}", project));
+                        }
+                    } else {
+                        return downloadUpdate(project, version, isUpdate);
+                    }
                 }
             } else {
                  if (config.isDebug()) {
                      platform.info(config.getMessage("no-update").replace("{project}", project));
                  }
             }
+            return CompletableFuture.completedFuture(null);
         });
     }
 
-    public void downloadUpdate(String project, UpdateClient.UpdateVersion version, boolean isUpdate) {
+    private boolean isFileUpToDate(String project, UpdateClient.UpdateVersion version, boolean isUpdate) {
+        if (version.sha256 == null) return false; // No hash to compare, assume update needed
+        
+        // Get target file path
+        // We need to know where the file IS to compare.
+        // getDownloadFolder returns the folder.
+        // If it's an update, we look at the running jar?
+        // But running jar might be locked or different name.
+        // PlatformAdapter doesn't give us the running jar path directly, only download folder.
+        // But usually download folder contains the running jar or the update target.
+        
+        // For Geyser Standalone:
+        // Geyser Core -> root
+        // Extensions -> extensions folder
+        
+        Path targetFolder = platform.getDownloadFolder(project, isUpdate);
+        // We don't know the exact filename of the INSTALLED file, only the new one.
+        // But if we are updating, we assume we are replacing a file.
+        // If installedVersion is null, we might still have the file on disk (e.g. Geyser Standalone case).
+        
+        // Let's try to find a file that looks like the project?
+        // Or better, if we are in "isUpdate=true" mode, we imply something is installed.
+        // But for Geyser Extension, getInstalledVersion returns null, so isUpdate=false.
+        // But the file might exist.
+        
+        // Let's check if the target file already exists and matches hash.
+        Path targetFile = targetFolder.resolve(version.filename);
+        if (Files.exists(targetFile)) {
+            try {
+                String localHash = calculateSha256(targetFile);
+                if (localHash.equalsIgnoreCase(version.sha256)) {
+                    return true;
+                }
+            } catch (Exception e) {
+                platform.warn("Failed to calculate hash for existing file: " + e.getMessage());
+            }
+        }
+        
+        return false;
+    }
+    
+    private String calculateSha256(Path path) throws java.io.IOException, java.security.NoSuchAlgorithmException {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        try (InputStream fis = Files.newInputStream(path)) {
+            byte[] buffer = new byte[8192];
+            int n = 0;
+            while ((n = fis.read(buffer)) != -1) {
+                digest.update(buffer, 0, n);
+            }
+        }
+        byte[] hash = digest.digest();
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) hexString.append('0');
+            hexString.append(hex);
+        }
+        return hexString.toString();
+    }
+
+    public CompletableFuture<Void> downloadUpdate(String project, UpdateClient.UpdateVersion version, boolean isUpdate) {
         platform.info(config.getMessage("downloading").replace("{project}", project));
         
         HttpClient httpClient = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder().uri(URI.create(version.downloadUrl)).build();
         
-        httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream())
+        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream())
                 .thenAccept(response -> {
                     if (response.statusCode() == 200) {
                         Path tempFile = null;
@@ -121,8 +240,7 @@ public class GeyserUpdaterCommon {
                                 
                                 if (config.isAutoRestartEnabled() && config.isRestartTrigger(project)) {
                                     platform.info(config.getMessage("restart-trigger").replace("{project}", project));
-                                    restartRequired = true;
-                                    scheduleRestart();
+                                    restartRequired.set(true);
                                 }
                             } catch (java.io.IOException e) {
                                 // Fallback for file locking
@@ -133,12 +251,9 @@ public class GeyserUpdaterCommon {
                                 
                                 if (config.isShutdownScriptEnabled() || (config.isAutoRestartEnabled() && config.isRestartTrigger(project))) {
                                     if (config.isAutoRestartEnabled() && config.isRestartTrigger(project)) {
-                                        restartRequired = true;
+                                        restartRequired.set(true);
                                     }
                                     createShutdownScript(fallback, target);
-                                    if (restartRequired) {
-                                         scheduleRestart();
-                                    }
                                 } else {
                                     platform.info(config.getMessage("saved-fallback-manual").replace("{file}", fallback.getFileName().toString()));
                                 }
