@@ -59,3 +59,16 @@
   Checking logs for update check...
   SUCCESS: Update check skipped (Geyser not installed) - Logic Verified.
   ```
+
+## 5. 功能测试: 自动安装 (Paper)
+- **状态**: 已测试
+- **测试结果**:
+  - [x] 配置 `auto-install: true` 生效
+  - [x] 在 Geyser 未安装时自动下载
+  - [x] 自动安装到 plugins 目录 (非 update 目录)
+- **运行日志片段**:
+  ```
+  [14:41:27 INFO]: [GeyserUpdater] Enabling GeyserUpdater v1.0.0
+  ...
+  SUCCESS: Found installed Geyser jar: Geyser-Spigot.jar
+  ```

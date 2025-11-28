@@ -70,6 +70,14 @@ public class ConfigManager {
         defaultMap.put("update-strategy", "AUTO"); 
         defaultMap.put("allow-alpha", true);
         defaultMap.put("allow-beta", true);
+        defaultMap.put("enable-shutdown-script", false);
+        
+        Map<String, Object> autoInstall = new LinkedHashMap<>();
+        autoInstall.put("geyser", false);
+        autoInstall.put("floodgate", false);
+        autoInstall.put("geyserextras", false);
+        defaultMap.put("auto-install", autoInstall);
+        
         saveYaml(configPath, defaultMap);
     }
 
@@ -100,6 +108,10 @@ public class ConfigManager {
         return (boolean) config.getOrDefault("debug", false);
     }
 
+    public boolean isShutdownScriptEnabled() {
+        return (boolean) config.getOrDefault("enable-shutdown-script", false);
+    }
+
     public String getUpdateStrategy() {
         return (String) config.getOrDefault("update-strategy", "AUTO");
     }
@@ -110,6 +122,15 @@ public class ConfigManager {
 
     public boolean isAllowBeta() {
         return (boolean) config.getOrDefault("allow-beta", true);
+    }
+
+    public boolean isAutoInstallEnabled(String project) {
+        Object obj = config.get("auto-install");
+        if (obj instanceof Map) {
+            Map<?, ?> map = (Map<?, ?>) obj;
+            return Boolean.TRUE.equals(map.get(project));
+        }
+        return false;
     }
 
     public String getMessage(String key) {

@@ -11,7 +11,7 @@ tasks.jar {
 
 allprojects {
     group = "cn.lemwood"
-    version = "1.0.0alpha-1"
+    version = "1.0.0alpha-2"
 
     repositories {
         mavenCentral()

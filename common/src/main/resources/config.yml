@@ -12,3 +12,17 @@ update-strategy: AUTO
 # 允许的版本类型
 allow-alpha: true
 allow-beta: true
+
+# 启用关闭时自动更新脚本
+# 当插件文件被占用（如在 Windows 上）导致无法直接覆盖时，启用此选项将生成一个脚本，
+# 在服务器关闭/进程结束后尝试替换文件。
+# 注意：在某些面板服（如 Pterodactyl）或容器化环境中，服务器进程结束后容器可能会立即停止，
+# 导致此脚本无法执行。如果您的环境属于此类，请保持此选项为 false。
+enable-shutdown-script: false
+
+# 自动安装设置
+# 如果某个项目未安装，是否自动下载并安装它？
+auto-install:
+  geyser: false
+  floodgate: false
+  geyserextras: false
