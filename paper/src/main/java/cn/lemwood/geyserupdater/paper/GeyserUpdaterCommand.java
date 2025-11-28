@@ -16,17 +16,18 @@ public class GeyserUpdaterCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!sender.hasPermission("geyserupdater.admin")) {
-            sender.sendMessage("§cYou do not have permission to use this command.");
+            sender.sendMessage(common.getConfig().getMessage("no-permission").replace("&", "§"));
             return true;
         }
 
         if (args.length > 0 && args[0].equalsIgnoreCase("check")) {
-            sender.sendMessage(common.getConfig().getMessage("prefix").replace("&", "§") + "Checking for updates...");
+            sender.sendMessage(common.getConfig().getMessage("prefix").replace("&", "§") + 
+                    common.getConfig().getMessage("check-start").replace("&", "§"));
             common.checkAll();
             return true;
         }
 
-        sender.sendMessage("§cUsage: /geyserupdater check");
+        sender.sendMessage(common.getConfig().getMessage("usage").replace("&", "§"));
         return true;
     }
 }

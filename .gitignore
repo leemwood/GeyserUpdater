@@ -19,6 +19,7 @@ out/
 # Test environment
 test/
 dist/
+test_restart_env/
 *.hprof
 
 # Test scripts

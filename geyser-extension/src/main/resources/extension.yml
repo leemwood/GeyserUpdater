@@ -1,0 +1,6 @@
+id: geyserupdater
+name: GeyserUpdater
+version: "@version@"
+main: cn.lemwood.geyserupdater.extension.GeyserUpdaterExtension
+authors: ["lemwood"]
+description: "Auto update Geyser and optional projects for Geyser Standalone."

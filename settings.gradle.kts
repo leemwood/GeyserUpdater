@@ -7,4 +7,4 @@ pluginManagement {
 }
 
 rootProject.name = "GeyserUpdater"
-include("common", "paper", "fabric", "velocity", "viaproxy")
+include("common", "paper", "fabric", "velocity", "viaproxy", "geyser-extension")

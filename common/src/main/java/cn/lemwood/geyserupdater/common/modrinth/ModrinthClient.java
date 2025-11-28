@@ -1,5 +1,6 @@
 package cn.lemwood.geyserupdater.common.modrinth;
 
+import cn.lemwood.geyserupdater.common.api.UpdateClient;
 import cn.lemwood.geyserupdater.common.config.ConfigManager;
 import cn.lemwood.geyserupdater.common.platform.PlatformAdapter;
 import com.google.gson.Gson;
@@ -15,7 +16,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 
-public class ModrinthClient {
+public class ModrinthClient implements UpdateClient {
     private static final String BASE_URL = "https://api.modrinth.com/v2"; 
     private final HttpClient httpClient;
     private final Gson gson;
@@ -29,7 +30,8 @@ public class ModrinthClient {
         this.gson = new Gson();
     }
 
-    public CompletableFuture<ModrinthVersion> getLatestVersion(String projectId) {
+    @Override
+    public CompletableFuture<UpdateVersion> getLatestVersion(String projectId) {
         String loader = platform.getModrinthLoader();
         String gameVersion = "1.21"; 
         
@@ -64,9 +66,8 @@ public class ModrinthClient {
                                 if (!config.isAllowAlpha() && "alpha".equalsIgnoreCase(versionType)) continue;
                                 if (!config.isAllowBeta() && "beta".equalsIgnoreCase(versionType)) continue;
                                 
-                                ModrinthVersion version = new ModrinthVersion();
+                                UpdateVersion version = new UpdateVersion();
                                 version.versionNumber = verObj.get("version_number").getAsString();
-                                version.id = verObj.get("id").getAsString();
                                 
                                 JsonArray files = verObj.getAsJsonArray("files");
                                 if (files.size() > 0) {
@@ -88,16 +89,14 @@ public class ModrinthClient {
                         return null;
                     });
         } catch (Exception e) {
-            CompletableFuture<ModrinthVersion> failed = new CompletableFuture<>();
+            CompletableFuture<UpdateVersion> failed = new CompletableFuture<>();
             failed.completeExceptionally(e);
             return failed;
         }
     }
 
-    public static class ModrinthVersion {
-        public String versionNumber;
+    @Deprecated
+    public static class ModrinthVersion extends UpdateVersion {
         public String id;
-        public String downloadUrl;
-        public String filename;
     }
 }

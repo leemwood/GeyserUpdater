@@ -25,7 +25,7 @@ public class GeyserUpdaterViaProxy extends ViaProxyPlugin implements PlatformAda
         // Command registration is not standard in ViaProxy plugin API yet or not documented clearly.
         // We skip command registration for now.
         // If there is a way to register commands, it should be added here.
-        info("GeyserUpdater loaded on ViaProxy.");
+        info(common.getConfig().getMessage("viaproxy-loaded"));
     }
 
     @Override
@@ -74,7 +74,7 @@ public class GeyserUpdaterViaProxy extends ViaProxyPlugin implements PlatformAda
     }
 
     @Override
-    public Path getUpdateFolder() {
+    public Path getDownloadFolder(String projectId, boolean isUpdate) {
         // ViaProxy plugins are in "plugins" folder.
         // We can just return the parent of data folder, which is "plugins".
         return getDataDirectory().getParent();
@@ -105,5 +105,14 @@ public class GeyserUpdaterViaProxy extends ViaProxyPlugin implements PlatformAda
             // Fallback or ignore
         }
         return null;
+    }
+
+    @Override
+    public void shutdown() {
+        // ViaProxy does not seem to expose a clean shutdown API in public docs easily
+        // But usually System.exit(0) is the way for standalone apps, 
+        // however ViaProxy might have a graceful shutdown.
+        // Looking at ViaProxy source or common usage:
+        System.exit(0);
     }
 }

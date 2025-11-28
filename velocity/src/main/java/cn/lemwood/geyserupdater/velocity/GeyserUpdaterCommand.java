@@ -18,16 +18,17 @@ public class GeyserUpdaterCommand implements SimpleCommand {
         String[] args = invocation.arguments();
 
         if (!source.hasPermission("geyserupdater.admin")) {
-            source.sendMessage(Component.text("§cYou do not have permission to use this command."));
+            source.sendMessage(Component.text(common.getConfig().getMessage("no-permission").replace("&", "§")));
             return;
         }
 
         if (args.length > 0 && args[0].equalsIgnoreCase("check")) {
-            source.sendMessage(Component.text(common.getConfig().getMessage("prefix").replace("&", "§") + "Checking for updates..."));
+            source.sendMessage(Component.text(common.getConfig().getMessage("prefix").replace("&", "§") + 
+                    common.getConfig().getMessage("check-start").replace("&", "§")));
             common.checkAll();
             return;
         }
 
-        source.sendMessage(Component.text("§cUsage: /geyserupdater check"));
+        source.sendMessage(Component.text(common.getConfig().getMessage("usage").replace("&", "§")));
     }
 }

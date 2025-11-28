@@ -133,6 +133,49 @@ public class ConfigManager {
         return false;
     }
 
+    @SuppressWarnings("unchecked")
+    public boolean isAutoRestartEnabled() {
+        Object obj = config.get("auto-restart");
+        if (obj instanceof Map) {
+            return Boolean.TRUE.equals(((Map<String, Object>) obj).get("enabled"));
+        }
+        return false;
+    }
+
+    @SuppressWarnings("unchecked")
+    public boolean isRestartTrigger(String projectId) {
+        Object obj = config.get("auto-restart");
+        if (obj instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) obj;
+            Object triggers = map.get("triggers");
+            if (triggers instanceof java.util.List) {
+                return ((java.util.List<String>) triggers).contains(projectId);
+            }
+        }
+        return false;
+    }
+
+    @SuppressWarnings("unchecked")
+    public String getRestartScript() {
+        Object obj = config.get("auto-restart");
+        if (obj instanceof Map) {
+            return (String) ((Map<String, Object>) obj).get("restart-script");
+        }
+        return "";
+    }
+
+    @SuppressWarnings("unchecked")
+    public int getRestartDelay() {
+        Object obj = config.get("auto-restart");
+        if (obj instanceof Map) {
+            Object delay = ((Map<String, Object>) obj).get("delay");
+            if (delay instanceof Number) {
+                return ((Number) delay).intValue();
+            }
+        }
+        return 10;
+    }
+
     public String getMessage(String key) {
         String prefix = (String) messages.getOrDefault("prefix", "");
         String msg = (String) messages.getOrDefault(key, key);

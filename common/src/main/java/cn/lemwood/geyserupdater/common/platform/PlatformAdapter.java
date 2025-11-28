@@ -17,10 +17,11 @@ public interface PlatformAdapter {
     String getModrinthLoader();
     
     /**
-     * Returns the folder where updates should be placed.
-     * Usually "plugins" or "mods".
+     * Returns the folder where the project file should be placed.
+     * @param projectId The project ID (geyser, floodgate, etc.)
+     * @param isUpdate Whether this is an update to an existing installation
      */
-    Path getUpdateFolder();
+    Path getDownloadFolder(String projectId, boolean isUpdate);
 
     /**
      * Gets the installed version of a project.
@@ -28,4 +29,9 @@ public interface PlatformAdapter {
      * @return version string or null if not installed
      */
     String getInstalledVersion(String projectId);
+
+    /**
+     * Shuts down the server.
+     */
+    void shutdown();
 }

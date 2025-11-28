@@ -26,3 +26,19 @@ auto-install:
   geyser: false
   floodgate: false
   geyserextras: false
+
+# 自动重启设置
+auto-restart:
+  # 是否在更新后自动重启服务器
+  enabled: false
+  # 触发重启的项目列表
+  # 仅当列表中的项目发生更新时，才会触发自动重启
+  triggers:
+    - geyser
+    - floodgate
+  # 重启脚本路径（用于在更新脚本执行完毕后启动服务器）
+  # 请填写您的服务器启动脚本路径，例如 "./start.bat" 或 "./start.sh"
+  # 如果未指定或文件不存在，将只执行关闭操作
+  restart-script: ""
+  # 执行重启命令前的延迟（秒），用于给用户发送通知
+  delay: 10

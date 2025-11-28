@@ -15,7 +15,7 @@ import java.nio.file.Path;
 @Plugin(
         id = "geyserupdater",
         name = "GeyserUpdater",
-        version = "1.0.0",
+        version = "1.0.0alpha-3",
         description = "A plugin to automatically update Geyser, Floodgate, and GeyserExtras using Modrinth API.",
         authors = {"lemwood"}
 )
@@ -79,7 +79,7 @@ public class GeyserUpdaterVelocity implements PlatformAdapter {
     }
 
     @Override
-    public Path getUpdateFolder() {
+    public Path getDownloadFolder(String projectId, boolean isUpdate) {
         return dataDirectory.getParent(); 
     }
 
@@ -97,5 +97,10 @@ public class GeyserUpdaterVelocity implements PlatformAdapter {
         return server.getPluginManager().getPlugin(pluginId)
                 .map(container -> container.getDescription().getVersion().orElse("unknown"))
                 .orElse(null);
+    }
+
+    @Override
+    public void shutdown() {
+        server.shutdown();
     }
 }

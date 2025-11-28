@@ -11,7 +11,7 @@ tasks.jar {
 
 allprojects {
     group = "cn.lemwood"
-    version = "1.0.0alpha-2"
+    version = "1.0.0alpha-3"
 
     repositories {
         mavenCentral()
@@ -21,6 +21,8 @@ allprojects {
         maven("https://repo.velocitypowered.com/snapshots/")
         maven("https://maven.fabricmc.net/")
         maven("https://repo.viaversion.com")
+        maven("https://repo.opencollab.dev/maven-snapshots/")
+        maven("https://repo.opencollab.dev/maven-releases/")
     }
 }
 

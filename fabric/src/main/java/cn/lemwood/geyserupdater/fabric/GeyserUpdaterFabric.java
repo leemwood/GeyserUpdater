@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import static net.minecraft.server.command.CommandManager.literal;
 import net.minecraft.text.Text;
 
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.server.MinecraftServer;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,19 +20,24 @@ public class GeyserUpdaterFabric implements ModInitializer, PlatformAdapter {
     private static final Logger LOGGER = LoggerFactory.getLogger("GeyserUpdater");
     private final ExecutorService scheduler = Executors.newCachedThreadPool();
     private GeyserUpdaterCommon common;
+    private MinecraftServer server;
 
     @Override
     public void onInitialize() {
         this.common = new GeyserUpdaterCommon(this);
         this.common.onEnable();
         
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> this.server = server);
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> this.server = null);
+
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(literal("geyserupdater")
                 .requires(source -> source.hasPermissionLevel(4)) 
                 .then(literal("check")
                     .executes(context -> {
                         context.getSource().sendMessage(Text.of(
-                            common.getConfig().getMessage("prefix").replace("&", "§") + "Checking for updates..."
+                            common.getConfig().getMessage("prefix").replace("&", "§") + 
+                            common.getConfig().getMessage("check-start").replace("&", "§")
                         ));
                         common.checkAll();
                         return 1;
@@ -76,7 +83,7 @@ public class GeyserUpdaterFabric implements ModInitializer, PlatformAdapter {
     }
 
     @Override
-    public Path getUpdateFolder() {
+    public Path getDownloadFolder(String projectId, boolean isUpdate) {
         return FabricLoader.getInstance().getGameDir().resolve("mods");
     }
 
@@ -94,5 +101,12 @@ public class GeyserUpdaterFabric implements ModInitializer, PlatformAdapter {
         return FabricLoader.getInstance().getModContainer(modId)
                 .map(c -> c.getMetadata().getVersion().getFriendlyString())
                 .orElse(null);
+    }
+
+    @Override
+    public void shutdown() {
+        if (server != null) {
+            server.stop(false);
+        }
     }
 }

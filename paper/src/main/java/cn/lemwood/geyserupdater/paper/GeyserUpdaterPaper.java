@@ -72,8 +72,12 @@ public class GeyserUpdaterPaper extends JavaPlugin implements PlatformAdapter {
     }
 
     @Override
-    public Path getUpdateFolder() {
-        return getDataFolder().getParentFile().toPath().resolve("update");
+    public Path getDownloadFolder(String projectId, boolean isUpdate) {
+        if (isUpdate) {
+            return getDataFolder().getParentFile().toPath().resolve("update");
+        } else {
+            return getDataFolder().getParentFile().toPath();
+        }
     }
 
     @Override
@@ -91,5 +95,10 @@ public class GeyserUpdaterPaper extends JavaPlugin implements PlatformAdapter {
         if (plugin == null) return null;
         
         return plugin.getDescription().getVersion();
+    }
+
+    @Override
+    public void shutdown() {
+        getServer().shutdown();
     }
 }

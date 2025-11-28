@@ -9,3 +9,34 @@ error: "&c更新 {project} 时出错: {error}"
 no-update: "&a{project} 已是最新版本。"
 check-start: "&e正在检查更新..."
 no-permission: "&c你没有权限使用此命令。"
+usage: "&c用法: /geyserupdater check"
+
+# Debug / Auto Install
+auto-install-checking: "{project} 未安装，但已启用自动安装。正在检查最新版本..."
+not-installed-skipping: "{project} 未安装，跳过。"
+checking-updates: "正在检查 {project} 的更新..."
+found-latest: "发现 {project} 的最新版本: {version}"
+
+# File Operations
+file-locked-warning: "无法覆盖文件（可能被锁定）: {error}"
+saving-fallback: "正在保存为 {file} ..."
+saved-fallback-manual: "更新已保存至 {file}。请在服务器重启后手动替换。"
+download-failed: "下载失败: {status}"
+
+# Shutdown Script
+script-creation-failed: "创建关闭脚本失败: {error}"
+script-generated: "已生成关闭脚本: {file}"
+script-instructions: "在服务器关闭后执行此脚本将应用更新。"
+script-scheduled: "已计划执行关闭更新脚本。"
+script-schedule-failed: "无法自动计划脚本: {error}"
+
+# Extension
+extension-standalone-only: "GeyserUpdater 扩展仅支持 Geyser 独立版。正在禁用..."
+
+# ViaProxy
+viaproxy-loaded: "GeyserUpdater 已在 ViaProxy 上加载。"
+
+# Auto Restart
+restart-countdown: "&c服务器将在 {seconds} 秒后重启以应用更新..."
+restarting: "&c正在重启服务器..."
+restart-trigger: "&e由于 {project} 更新，已计划自动重启。"
