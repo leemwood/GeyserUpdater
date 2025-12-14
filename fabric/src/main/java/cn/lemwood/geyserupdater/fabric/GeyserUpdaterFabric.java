@@ -16,6 +16,9 @@ import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import net.fabricmc.loader.api.Version;
+import net.fabricmc.loader.api.VersionParsingException;
+
 public class GeyserUpdaterFabric implements ModInitializer, PlatformAdapter {
     private static final Logger LOGGER = LoggerFactory.getLogger("GeyserUpdater");
     private final ExecutorService scheduler = Executors.newCachedThreadPool();
@@ -89,18 +92,49 @@ public class GeyserUpdaterFabric implements ModInitializer, PlatformAdapter {
 
     @Override
     public String getInstalledVersion(String projectId) {
-        String modId = switch (projectId) {
-            case "geyser" -> "geyser-fabric";
-            case "floodgate" -> "floodgate";
-            case "geyserextras" -> "geyserextras";
-            default -> null;
+        String[] possibleModIds = switch (projectId) {
+            case "geyser" -> new String[]{"geyser-fabric", "geyser", "Geyser"};
+            case "floodgate" -> new String[]{"floodgate", "Floodgate"};
+            case "geyserextras" -> new String[]{"geyserextras", "GeyserExtras"};
+            default -> new String[]{projectId};
         };
         
-        if (modId == null) return null;
+        for (String modId : possibleModIds) {
+            var container = FabricLoader.getInstance().getModContainer(modId);
+            if (container.isPresent()) {
+                return container.get().getMetadata().getVersion().getFriendlyString();
+            }
+        }
         
-        return FabricLoader.getInstance().getModContainer(modId)
-                .map(c -> c.getMetadata().getVersion().getFriendlyString())
-                .orElse(null);
+        return null;
+    }
+
+    @Override
+    public boolean compareVersion(String projectId, String remoteVersion) {
+        String[] possibleModIds = switch (projectId) {
+            case "geyser" -> new String[]{"geyser-fabric", "geyser", "Geyser"};
+            case "floodgate" -> new String[]{"floodgate", "Floodgate"};
+            case "geyserextras" -> new String[]{"geyserextras", "GeyserExtras"};
+            default -> new String[]{projectId};
+        };
+        
+        for (String modId : possibleModIds) {
+            var container = FabricLoader.getInstance().getModContainer(modId);
+            if (container.isPresent()) {
+                try {
+                    Version current = container.get().getMetadata().getVersion();
+                    Version remote = Version.parse(remoteVersion);
+                    return current.compareTo(remote) < 0; // Update if current < remote
+                } catch (VersionParsingException e) {
+                    // Fallback to string comparison if parsing fails
+                    return !container.get().getMetadata().getVersion().getFriendlyString().equals(remoteVersion);
+                } catch (Exception e) {
+                    return true;
+                }
+            }
+        }
+        
+        return true; // Not found, assume update needed
     }
 
     @Override

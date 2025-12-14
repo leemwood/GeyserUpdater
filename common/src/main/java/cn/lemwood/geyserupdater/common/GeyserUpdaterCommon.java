@@ -60,20 +60,22 @@ public class GeyserUpdaterCommon {
     public void checkAll() {
         List<CompletableFuture<Void>> futures = new ArrayList<>();
         for (String project : projects) {
-            String installed = platform.getInstalledVersion(project);
-            if (installed == null) {
+            boolean isInstalled = platform.isProjectInstalled(project);
+            String installedVersion = platform.getInstalledVersion(project);
+            
+            if (!isInstalled) {
                 if (config.isAutoInstallEnabled(project)) {
                     if (config.isDebug()) {
                         platform.info(config.getMessage("auto-install-checking").replace("{project}", project));
                     }
-                    futures.add(checkProject(project, null));
+                    futures.add(checkProject(project, null, false));
                 } else if (config.isDebug()) {
                     platform.info(config.getMessage("not-installed-skipping").replace("{project}", project));
                 }
                 continue;
             }
             
-            futures.add(checkProject(project, installed));
+            futures.add(checkProject(project, installedVersion, true));
         }
         
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
@@ -84,114 +86,122 @@ public class GeyserUpdaterCommon {
             });
     }
 
-    private CompletableFuture<Void> checkProject(String project, String installedVersion) {
+    private CompletableFuture<Void> checkProject(String project, String installedVersion, boolean isInstalled) {
         platform.info(config.getMessage("checking-updates").replace("{project}", project));
         return client.getLatestVersion(project).thenCompose(version -> {
             if (version == null) return CompletableFuture.completedFuture(null);
             
             // If installed version is null (missing file), we should treat it as an update if auto-install is enabled
-            boolean isUpdate = installedVersion != null;
+            // But wait, we already handled auto-install logic in checkAll.
+            // If we are here, either isInstalled=true OR isInstalled=false (but auto-install enabled).
+            
+            boolean isUpdate = isInstalled;
             boolean shouldDownload = false;
             
             if (!isUpdate) {
-                // File missing
+                // File missing - auto install case
                 platform.info(config.getMessage("found-latest")
                         .replace("{project}", project)
                         .replace("{version}", version.versionNumber));
                 shouldDownload = true;
-            } else if (!version.versionNumber.equals(installedVersion)) {
-                // Version mismatch
-                platform.info(config.getMessage("update-found")
-                        .replace("{project}", project)
-                        .replace("{version}", version.versionNumber));
-                shouldDownload = true;
             } else {
-                // Version matches string-wise, but let's verify file hash if available to be sure
-                // This handles cases where version string is same but file changed (e.g. snapshots with same build num but different hash?)
-                // Or if user manually replaced file with older version but kept filename?
-                // Actually, if version matches, usually we skip.
-                // But user mentioned "Plugin exists but still downloads".
-                // Let's check SHA256 if available.
+                // File exists - check if update is needed
+                boolean versionDifferent = platform.compareVersion(project, version.versionNumber);
                 
-                // Wait, the user said "Plugin already exists, result is just requesting api to download file".
-                // This implies we are re-downloading even if version matches?
-                // My previous logic was:
-                // if (installedVersion == null || !version.versionNumber.equals(installedVersion)) { ... download ... }
-                // So if version equals, it should skip.
-                
-                // Perhaps installedVersion is not what we expect?
-                // getInstalledVersion returns version string from plugin.yml/fabric.mod.json.
-                // If the remote version is "2.2.0-SNAPSHOT" and local is "2.2.0-SNAPSHOT", it should be equal.
-                
-                // However, maybe for Geyser Standalone, we return null in getInstalledVersion?
-                // Yes! In GeyserExtensionAdapter.java:
-                // public String getInstalledVersion(String projectId) { return null; }
-                // That's why it always updates!
-                
-                // We need to implement getInstalledVersion for Geyser Standalone or rely on hash check.
-                // Since we can't easily get internal version of running Geyser (it doesn't expose it easily via API?),
-                // checking the file hash on disk is the best way.
-                
-                // So, if installedVersion is null OR mismatch, we proceed to check hash (if file exists).
-                
-                shouldDownload = true;
+                if (installedVersion == null) {
+                    // Platform can't determine version, rely on hash check
+                    if (config.isDebug()) {
+                        platform.info("Cannot determine installed version for " + project + ", will check file hash");
+                    }
+                    shouldDownload = true;
+                } else if (versionDifferent) {
+                    // Version strings are different
+                    platform.info(config.getMessage("update-found")
+                            .replace("{project}", project)
+                            .replace("{version}", version.versionNumber));
+                    shouldDownload = true;
+                } else {
+                    // Version strings match
+                    if (config.isDebug()) {
+                        platform.info("Version strings match for " + project + " (" + installedVersion + "), no update needed");
+                    }
+                    shouldDownload = false;
+                }
             }
             
-            if (shouldDownload) {
-                if ("AUTO".equalsIgnoreCase(config.getUpdateStrategy())) {
-                    // Check hash before downloading
-                    if (isFileUpToDate(project, version, isUpdate)) {
-                        if (config.isDebug()) {
-                            platform.info(config.getMessage("no-update").replace("{project}", project));
-                        }
-                    } else {
-                        return downloadUpdate(project, version, isUpdate);
+            if (shouldDownload && "AUTO".equalsIgnoreCase(config.getUpdateStrategy())) {
+                // Always check hash before downloading to avoid duplicate downloads
+                if (isFileUpToDate(project, version, isUpdate)) {
+                    if (config.isDebug()) {
+                        platform.info(config.getMessage("no-update").replace("{project}", project));
                     }
+                } else {
+                    return downloadUpdate(project, version, isUpdate);
                 }
-            } else {
-                 if (config.isDebug()) {
-                     platform.info(config.getMessage("no-update").replace("{project}", project));
-                 }
+            } else if (!shouldDownload && config.isDebug()) {
+                platform.info(config.getMessage("no-update").replace("{project}", project));
             }
             return CompletableFuture.completedFuture(null);
         });
     }
 
     private boolean isFileUpToDate(String project, UpdateClient.UpdateVersion version, boolean isUpdate) {
-        if (version.sha256 == null) return false; // No hash to compare, assume update needed
+        if (version.sha256 == null) {
+            if (config.isDebug()) {
+                platform.info("No SHA256 available for " + project + ", assuming update needed.");
+            }
+            return false; 
+        }
         
-        // Get target file path
-        // We need to know where the file IS to compare.
-        // getDownloadFolder returns the folder.
-        // If it's an update, we look at the running jar?
-        // But running jar might be locked or different name.
-        // PlatformAdapter doesn't give us the running jar path directly, only download folder.
-        // But usually download folder contains the running jar or the update target.
+        // First check the installed directory for any matching jar file
+        Path installedFolder = platform.getDownloadFolder(project, false);
+        Path installedFile = platform.findInstalledJar(project, installedFolder);
         
-        // For Geyser Standalone:
-        // Geyser Core -> root
-        // Extensions -> extensions folder
+        if (config.isDebug()) {
+            platform.info("Checking for installed file of " + project + " in " + installedFolder);
+            if (installedFile != null) {
+                platform.info("Found installed file: " + installedFile);
+            }
+        }
         
-        Path targetFolder = platform.getDownloadFolder(project, isUpdate);
-        // We don't know the exact filename of the INSTALLED file, only the new one.
-        // But if we are updating, we assume we are replacing a file.
-        // If installedVersion is null, we might still have the file on disk (e.g. Geyser Standalone case).
-        
-        // Let's try to find a file that looks like the project?
-        // Or better, if we are in "isUpdate=true" mode, we imply something is installed.
-        // But for Geyser Extension, getInstalledVersion returns null, so isUpdate=false.
-        // But the file might exist.
-        
-        // Let's check if the target file already exists and matches hash.
-        Path targetFile = targetFolder.resolve(version.filename);
-        if (Files.exists(targetFile)) {
+        // Check if the installed file matches the remote hash
+        if (installedFile != null && Files.exists(installedFile)) {
             try {
-                String localHash = calculateSha256(targetFile);
+                String localHash = calculateSha256(installedFile);
+                if (config.isDebug()) {
+                    platform.info("Installed file hash: " + localHash + ", remote hash: " + version.sha256);
+                }
+                
                 if (localHash.equalsIgnoreCase(version.sha256)) {
+                    if (config.isDebug()) {
+                        platform.info("Installed file is already up to date");
+                    }
                     return true;
                 }
             } catch (Exception e) {
-                platform.warn("Failed to calculate hash for existing file: " + e.getMessage());
+                platform.warn("Failed to calculate hash for installed file: " + e.getMessage());
+            }
+        }
+        
+        // For Paper platform, also check if we already downloaded the update
+        if (isUpdate) {
+            Path updateFolder = platform.getDownloadFolder(project, true);
+            if (!updateFolder.equals(installedFolder)) {
+                // Check exact filename in update folder
+                Path potentialUpdateFile = updateFolder.resolve(version.filename);
+                if (Files.exists(potentialUpdateFile)) {
+                    try {
+                        String localHash = calculateSha256(potentialUpdateFile);
+                        if (localHash.equalsIgnoreCase(version.sha256)) {
+                            if (config.isDebug()) {
+                                platform.info("Update already downloaded at " + potentialUpdateFile);
+                            }
+                            return true;
+                        }
+                    } catch (Exception e) {
+                        platform.warn("Failed to calculate hash for update file: " + e.getMessage());
+                    }
+                }
             }
         }
         

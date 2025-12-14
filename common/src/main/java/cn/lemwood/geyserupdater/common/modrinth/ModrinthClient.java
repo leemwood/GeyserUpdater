@@ -102,9 +102,4 @@ public class ModrinthClient implements UpdateClient {
             return failed;
         }
     }
-
-    @Deprecated
-    public static class ModrinthVersion extends UpdateVersion {
-        public String id;
-    }
 }

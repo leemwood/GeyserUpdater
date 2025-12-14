@@ -82,19 +82,31 @@ public class GeyserUpdaterPaper extends JavaPlugin implements PlatformAdapter {
 
     @Override
     public String getInstalledVersion(String projectId) {
-        String pluginName = switch (projectId) {
-            case "geyser" -> "Geyser-Spigot";
-            case "floodgate" -> "floodgate";
-            case "geyserextras" -> "GeyserExtras";
-            default -> null;
+        String[] possibleNames = switch (projectId) {
+            case "geyser" -> new String[]{"Geyser-Spigot", "Geyser", "geyser"};
+            case "floodgate" -> new String[]{"floodgate", "Floodgate"};
+            case "geyserextras" -> new String[]{"GeyserExtras", "geyserextras"};
+            default -> new String[]{projectId};
         };
         
-        if (pluginName == null) return null;
+        for (String pluginName : possibleNames) {
+            Plugin plugin = getServer().getPluginManager().getPlugin(pluginName);
+            if (plugin != null) {
+                return plugin.getDescription().getVersion();
+            }
+        }
         
-        Plugin plugin = getServer().getPluginManager().getPlugin(pluginName);
-        if (plugin == null) return null;
-        
-        return plugin.getDescription().getVersion();
+        return null;
+    }
+
+    @Override
+    public boolean compareVersion(String projectId, String remoteVersion) {
+        // Bukkit versions are strings and often contain build numbers or custom formats.
+        // Simple string equality is usually the safest unless we parse SemVer.
+        // But remoteVersion from Modrinth might be "2.2.0" while local is "2.2.0-SNAPSHOT".
+        // We can assume update needed if strings don't match.
+        // Default implementation does exactly this.
+        return PlatformAdapter.super.compareVersion(projectId, remoteVersion);
     }
 
     @Override

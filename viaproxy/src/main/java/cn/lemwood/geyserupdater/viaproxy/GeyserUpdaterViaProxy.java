@@ -82,29 +82,36 @@ public class GeyserUpdaterViaProxy extends ViaProxyPlugin implements PlatformAda
 
     @Override
     public String getInstalledVersion(String projectId) {
-        String pluginName = switch (projectId) {
-            case "geyser" -> "Geyser-ViaProxy";
-            case "floodgate" -> "floodgate";
-            case "geyserextras" -> "GeyserExtras";
-            default -> null;
+        String[] possibleNames = switch (projectId) {
+            case "geyser" -> new String[]{"Geyser-ViaProxy", "geyser", "Geyser"};
+            case "floodgate" -> new String[]{"floodgate", "Floodgate"};
+            case "geyserextras" -> new String[]{"GeyserExtras", "geyserextras"};
+            default -> new String[]{projectId};
         };
-        
-        if (pluginName == null) return null;
 
         try {
-            // ViaProxy.getPluginManager() is likely static based on wiki
-            ViaProxyPlugin plugin = ViaProxy.getPluginManager().getPlugin(pluginName);
-            if (plugin != null) {
-                return plugin.getVersion();
-            } else {
-                // Try lowercase name just in case
+            for (String pluginName : possibleNames) {
+                ViaProxyPlugin plugin = ViaProxy.getPluginManager().getPlugin(pluginName);
+                if (plugin != null) {
+                    return plugin.getVersion();
+                }
+                // Try lowercase version
                 plugin = ViaProxy.getPluginManager().getPlugin(pluginName.toLowerCase());
-                if (plugin != null) return plugin.getVersion();
+                if (plugin != null) {
+                    return plugin.getVersion();
+                }
             }
         } catch (Exception e) {
-            // Fallback or ignore
+            if (common != null && common.getConfig().isDebug()) {
+                warn("Failed to get installed version for " + projectId + ": " + e.getMessage());
+            }
         }
         return null;
+    }        
+
+    @Override
+    public boolean compareVersion(String projectId, String remoteVersion) {
+        return PlatformAdapter.super.compareVersion(projectId, remoteVersion);
     }
 
     @Override

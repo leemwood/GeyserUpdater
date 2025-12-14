@@ -70,6 +70,13 @@ public class GeyserExtensionAdapter implements PlatformAdapter {
     }
 
     @Override
+    public boolean compareVersion(String projectId, String remoteVersion) {
+        // For Geyser Standalone, we don't have a reliable way to get installed version.
+        // So we always return true to force a hash check.
+        return true;
+    }
+
+    @Override
     public void shutdown() {
         // GeyserApi does not have shutdown() in some versions?
         // It might be System.exit(0) for standalone or we need to find the specific method.

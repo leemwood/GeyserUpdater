@@ -85,18 +85,28 @@ public class GeyserUpdaterVelocity implements PlatformAdapter {
 
     @Override
     public String getInstalledVersion(String projectId) {
-        String pluginId = switch (projectId) {
-            case "geyser" -> "geyser";
-            case "floodgate" -> "floodgate";
-            case "geyserextras" -> "geyserextras";
-            default -> null;
+        String[] possibleIds = switch (projectId) {
+            case "geyser" -> new String[]{"geyser", "Geyser", "geyser-velocity"};
+            case "floodgate" -> new String[]{"floodgate", "Floodgate"};
+            case "geyserextras" -> new String[]{"geyserextras", "GeyserExtras"};
+            default -> new String[]{projectId};
         };
         
-        if (pluginId == null) return null;
+        for (String pluginId : possibleIds) {
+            var plugin = server.getPluginManager().getPlugin(pluginId);
+            if (plugin.isPresent()) {
+                return plugin.get().getDescription().getVersion().orElse("unknown");
+            }
+        }
         
-        return server.getPluginManager().getPlugin(pluginId)
-                .map(container -> container.getDescription().getVersion().orElse("unknown"))
-                .orElse(null);
+        return null;
+    }
+
+    @Override
+    public boolean compareVersion(String projectId, String remoteVersion) {
+        // Velocity uses String for versions mostly, but can handle SemVer in description.
+        // For now, string equality is safe.
+        return PlatformAdapter.super.compareVersion(projectId, remoteVersion);
     }
 
     @Override
